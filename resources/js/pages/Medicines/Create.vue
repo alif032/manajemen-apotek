@@ -1,4 +1,3 @@
-
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
@@ -89,7 +88,16 @@ const startScanner = () => {
             'reader',
             {
                 fps: 10,
-                qrbox: { width: 250, height: 150 },
+                // Kotak pemindai diperbesar & responsif mengikuti ukuran layar
+                qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
+                    const width = Math.min(Math.floor(viewfinderWidth * 0.8), 480);
+                    const height = Math.min(Math.floor(viewfinderHeight * 0.65), 260);
+                    return {
+                        width: Math.max(width, 250),
+                        height: Math.max(height, 150),
+                    };
+                },
+                aspectRatio: 1.777778, // Rasio lebar 16:9 agar viewfinder besar & lega
             },
             false
         );
@@ -255,12 +263,13 @@ const submit = () => {
                     </button>
                 </div>
 
+                <!-- Area Kamera Diperbesar -->
                 <div
                     v-show="isScanning"
-                    class="border-t border-slate-100 bg-slate-50 p-5"
+                    class="border-t border-slate-100 bg-slate-50 p-4 sm:p-6"
                 >
-                    <div class="mx-auto max-w-md rounded-xl border border-slate-200 bg-white p-3">
-                        <div id="reader"></div>
+                    <div class="mx-auto w-full max-w-3xl overflow-hidden rounded-2xl border-2 border-emerald-200 bg-white p-3 shadow-md sm:p-4">
+                        <div id="reader" class="w-full"></div>
                     </div>
                 </div>
             </section>
@@ -532,3 +541,29 @@ const submit = () => {
         </div>
     </div>
 </template>
+
+<style scoped>
+/* Memastikan elemen video dan tombol bawaan html5-qrcode tampil lebar & rapi */
+:deep(#reader) {
+    border: none !important;
+}
+
+:deep(#reader video) {
+    width: 100% !important;
+    min-height: 320px;
+    border-radius: 0.75rem;
+    object-fit: cover;
+}
+
+:deep(#reader__dashboard_section_csr button),
+:deep(#reader__dashboard_section_fsr button) {
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    background-color: #059669;
+    color: white;
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-top: 0.5rem;
+    cursor: pointer;
+}
+</style>

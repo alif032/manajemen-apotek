@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Medicine;
 use App\Models\MedicineBatch;
 use App\Models\Category;
+use App\Models\StockMutation;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class MedicineController extends Controller
@@ -107,31 +109,42 @@ class MedicineController extends Controller
             'expired_date' => 'required|date',
         ]);
 
-        $medicine = Medicine::firstOrCreate(
-            ['code' => $request->code],
-            [
+        DB::transaction(function () use ($request) {
+            $medicine = Medicine::firstOrCreate(
+                ['code' => $request->code],
+                [
+                    'name' => $request->name,
+                    'category_id' => $request->category_id,
+                    'price' => $request->price,
+                    'minimum_stock' => $request->minimum_stock,
+                    'rack_location' => $request->rack_location,
+                ]
+            );
+
+            $medicine->update([
                 'name' => $request->name,
                 'category_id' => $request->category_id,
                 'price' => $request->price,
                 'minimum_stock' => $request->minimum_stock,
                 'rack_location' => $request->rack_location,
-            ]
-        );
+            ]);
 
-        $medicine->update([
-            'name' => $request->name,
-            'category_id' => $request->category_id,
-            'price' => $request->price,
-            'minimum_stock' => $request->minimum_stock,
-            'rack_location' => $request->rack_location,
-        ]);
+            $batch = MedicineBatch::create([
+                'medicine_id' => $medicine->id,
+                'batch_number' => $request->batch_number,
+                'stock' => $request->quantity,
+                'expired_date' => $request->expired_date,
+            ]);
 
-        MedicineBatch::create([
-            'medicine_id' => $medicine->id,
-            'batch_number' => $request->batch_number,
-            'stock' => $request->quantity,
-            'expired_date' => $request->expired_date,
-        ]);
+            // Catat riwayat stok masuk agar terbaca di Laporan Bulanan
+            StockMutation::create([
+                'medicine_id' => $medicine->id,
+                'medicine_batch_id' => $batch->id,
+                'type' => 'in',
+                'quantity' => $request->quantity,
+                'description' => 'Stok Masuk - Batch ' . $request->batch_number,
+            ]);
+        });
 
         return redirect()
             ->route('medicines.index')

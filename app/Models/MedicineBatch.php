@@ -16,7 +16,7 @@ class MedicineBatch extends Model
     ];
 
     protected $casts = [
-        'expired_date' => 'date',
+        'expired_date' => 'date:Y-m-d',
     ];
 
     public function medicine(): BelongsTo
